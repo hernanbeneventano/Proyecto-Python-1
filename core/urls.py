@@ -12,7 +12,5 @@ router.register(r"tasks", views.TaskViewSet, basename="task")
 
 urlpatterns = [
     path('', health_check, name='health_check'),
-    path("projects/", views.project_list, name="project_list"),
-    path("tasks/", views.task_list, name="task_list"),
     path("api/", include(router.urls)),
 ]
