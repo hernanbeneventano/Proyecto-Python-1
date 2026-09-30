@@ -1,0 +1,60 @@
+RESULTADOS DE PRUEBAS CURL - API TaskFlow
+Fecha: 2026-09-30
+Servidor: http://127.0.0.1:8000
+Endpoints CRUD: prefijo /api/
+
+Nota: las respuestas se obtuvieron con curl.exe desde PowerShell. Se usaron campos URL-encoded para evitar el problema de escape de comillas de JSON en Windows PowerShell 5.1. El servidor estaba ejecutándose localmente.
+
+CASO 1 - GET /api/projects/ (lectura)
+Comando:
+curl.exe -i http://127.0.0.1:8000/api/projects/
+Estado real: 200 OK
+Cuerpo real:
+[{"id":1,"name":"Proyecto 1","description":"Este es mi primer proyecto","tasks":[{"id":1,"project":1,"title":"TASK 1","description":"La primera tarea es relevar datos","priority":"alta","status":"pendiente","due_date":"2026-09-30","tags":[],"created_at":"2026-09-16T18:19:40.210205Z"}],"created_at":"2026-09-16T18:15:51.891683Z"},{"id":2,"name":"Proyecto temporal curl","description":"Prueba de estados HTTP","tasks":[],"created_at":"2026-09-30T17:20:20.693374Z"}]
+
+CASO 2 - POST /api/projects/ (creación válida)
+Comando usado:
+curl.exe -X POST http://127.0.0.1:8000/api/projects/ --data-urlencode "name=Proyecto temporal curl" --data-urlencode "description=Prueba de estados HTTP"
+Estado real: 201 Created
+Cuerpo real:
+{"id":2,"name":"Proyecto temporal curl","description":"Prueba de estados HTTP","tasks":[],"created_at":"2026-09-30T17:20:20.693374Z"}
+
+CASO 3 - POST /api/projects/ sin el campo obligatorio name
+Comando usado:
+curl.exe -X POST http://127.0.0.1:8000/api/projects/ --data-urlencode "description=falta el nombre"
+Estado real: 400 Bad Request
+Cuerpo real:
+{"error":true,"detail":{"name":["This field is required."]}}
+
+CASO 4 - POST /api/tasks/ con status=en_progreso y un proyecto sin tareas completadas
+Comando usado:
+curl.exe -X POST http://127.0.0.1:8000/api/tasks/ --data-urlencode "project=2" --data-urlencode "title=Prueba de regla" --data-urlencode "status=en_progreso"
+Estado real: 400 Bad Request
+Cuerpo real:
+{"error":true,"detail":{"non_field_errors":["No se puede poner una tarea en progreso si el proyecto no tiene ninguna tarea completada todavía."]}}
+
+CASO 5 - GET /api/tasks/999999/ (recurso inexistente)
+Comando:
+curl.exe -i http://127.0.0.1:8000/api/tasks/999999/
+Estado real: 404 Not Found
+Cuerpo real:
+{"error":true,"detail":{"detail":"No Task matches the given query."}}
+
+CASO 6 - DELETE /api/projects/2/ (eliminación del proyecto temporal)
+Comando:
+curl.exe -i -X DELETE http://127.0.0.1:8000/api/projects/2/
+Estado real: 204 No Content
+Cuerpo real: vacío, como corresponde a 204.
+
+COMPROBACIÓN DE AUTENTICACIÓN
+Petición sin credenciales: GET http://127.0.0.1:8000/api/tasks/
+Estado real: 200 OK
+Cuerpo real:
+[{"id":1,"project":1,"title":"TASK 1","description":"La primera tarea es relevar datos","priority":"alta","status":"pendiente","due_date":"2026-09-30","tags":[],"created_at":"2026-09-16T18:19:40.210205Z"}]
+La API no tiene permisos de autenticación configurados para este endpoint; por eso no devuelve 401 ni 403.
+
+CÓDIGO 500
+No se provocó un error interno artificialmente. Un 500 representa un bug no controlado del servidor y no una respuesta normal de una petición de prueba. No se observó un 500 durante estas pruebas.
+
+LIMPIEZA
+El proyecto temporal con id=2 se eliminó con el caso 6. La respuesta fue 204 y el body estuvo vacío.
