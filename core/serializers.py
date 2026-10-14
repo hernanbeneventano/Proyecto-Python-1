@@ -1,10 +1,8 @@
 from datetime import date  # para comparar fechas con la fecha actual
-from rest_framework import serializers  # para crear serializadores de DRF
 from .models import Project, Task, Tag  # traemos los modelos que vamos a convertir a JSON
+from rest_framework import serializers  # para crear serializadores de DRF
 
 from .services import HolidayService
- 
-
 
 class TagSerializer(serializers.ModelSerializer):
     class Meta:
@@ -77,4 +75,5 @@ class TaskSerializer(serializers.ModelSerializer):
         if not obj.due_date:
             return False
         return HolidayService.is_holiday(obj.due_date)
- 
+
+
