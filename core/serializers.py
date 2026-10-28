@@ -1,4 +1,6 @@
 from datetime import date  # para comparar fechas con la fecha actual
+import nh3
+
 from .models import Project, Task, Tag  # traemos los modelos que vamos a convertir a JSON
 from rest_framework import serializers  # para crear serializadores de DRF
 
@@ -14,13 +16,17 @@ class TagSerializer(serializers.ModelSerializer):
 # y también validamos que no se creen datos inconsistentes.
 class TaskSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True, read_only=True)  # cada tarea puede tener varias etiquetas
+    due_on_holiday = serializers.SerializerMethodField()
 
     class Meta:
         model = Task  # modelo de tarea
         fields = [
-            "id", "project", "title", "description",
-            "priority", "status", "due_date", "tags", "created_at",
+            "id", "project", "title", "description", "priority",
+            "status", "due_date", "due_on_holiday", "tags", "created_at",
         ]  # campos que se van a serializar
+
+    def validate_description(self, value):
+        return nh3.clean(value, tags=set())
 
     # Validamos la fecha para que no se pueda poner una fecha pasada
     def validate_due_date(self, value):
@@ -52,6 +58,11 @@ class TaskSerializer(serializers.ModelSerializer):
 
         return data  # si todo está bien, devuelve los datos validados
 
+    def get_due_on_holiday(self, obj):
+        if not obj.due_date:
+            return False
+        return HolidayService.is_holiday(obj.due_date)
+
 
 class ProjectSerializer(serializers.ModelSerializer):
     tasks = TaskSerializer(many=True, read_only=True)  # incluye las tareas relacionadas dentro del proyecto
@@ -59,21 +70,4 @@ class ProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project  # modelo de proyecto
         fields = ["id", "name", "description", "tasks", "created_at"]  # campos serializados del proyecto
-
-class TaskSerializer(serializers.ModelSerializer):
-    tags = TagSerializer(many=True, read_only=True)
-    due_on_holiday = serializers.SerializerMethodField()
- 
-    class Meta:
-        model = Task
-        fields = [
-            "id", "project", "title", "description", "priority",
-            "status", "due_date", "due_on_holiday", "tags", "created_at",
-        ]
- 
-    def get_due_on_holiday(self, obj):
-        if not obj.due_date:
-            return False
-        return HolidayService.is_holiday(obj.due_date)
-
 
